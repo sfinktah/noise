@@ -5,39 +5,83 @@ document.documentElement.style.overflow = 'hidden';
 document.documentElement.style.height = '100%';
 document.body.style.overflow = 'hidden';
 document.body.style.height = '100%';
-w = document.body.clientWidth;
-h = document.body.clientHeight;
-v = document.createElement('canvas');
-v.width = w;
-v.height = h;
-document.body.appendChild(v);
-c = v.getContext('2d');
-c.fillStyle = '#fff';
-c.fillRect(0, 0, w, h);
-i = c.getImageData(0, 0, w, h);
-setInterval(function(){
-    for (y = 0; y < h; y++) {
-        for (x = 0; x < w; x++) {
-            z = (x + (y * i.width)) * 4;
-            r = i.data[z];
-            g = i.data[z + 1];
-            b = i.data[z + 2];
-            r = Math.random() * 255;
-            g = Math.random() * 255;
-            b = Math.random() * 255;
-            i.data[z] = r;
-            i.data[z + 1] = g;
-            i.data[z + 2] = b;
-        }
-    }
-    c.putImageData(i, 0, 0);
-}, 1000 / 60);
-window.onresize = function(){
+function setup() {
     w = document.body.clientWidth;
     h = document.body.clientHeight;
+    v = document.createElement('canvas');
     v.width = w;
     v.height = h;
+    document.body.appendChild(v);
+    c = v.getContext('2d');
+    c.fillStyle = '#fff';
     c.fillRect(0, 0, w, h);
     i = c.getImageData(0, 0, w, h);
+    u = new Uint32Array(i.data.buffer);
+    f = new Float32Array(i.data.buffer);
+    noise();
+}
+
+accum = 0;
+effect = 3;
+
+setInterval(function() {
+    effect = (effect + 1) & 3;
+}, 3000);
+
+function noise() {
+    var loop = u.length;
+    switch (effect) {
+        case 0:
+            while (loop--) {
+                u[loop] = accum;
+                accum += loop;
+            }
+            break;
+        case 1:
+            while (loop--) {
+                f[loop] = Math.random();
+            }
+            break;
+        case 2:
+            while (loop--) {
+                f[loop] = Math.random();
+                u[loop] = u[loop] | 0xff000000;
+            }
+            break;
+        case 3:
+            while (loop--) {
+                f[loop] = Math.random();
+                u[loop] = (u[loop] << 8) & 0xff000000;
+            }
+            break;
+    }
+    /*
+     * for (y = 0; y < h; y++) {
+     *     for (x = 0; x < w; x++) {
+     *         z = (x + (y * i.width)) * 4;
+     *         r = i.data[z];
+     *         g = i.data[z + 1];
+     *         b = i.data[z + 2];
+     *         r = Math.random() * 255;
+     *         g = Math.random() * 255;
+     *         b = Math.random() * 255;
+     *         i.data[z] = r;
+     *         i.data[z + 1] = g;
+     *         i.data[z + 2] = b;
+     *     }
+     * }
+     */
+    c.putImageData(i, 0, 0);
+    if (window._resized) {
+        setup();
+        return;
+    }
+    requestAnimationFrame(noise);
+}
+
+window.onresize = function(){
+    window._resized = true;
 };
+
+setup();
 </script>
